@@ -1,6 +1,6 @@
 ﻿namespace FileSorter;
 
-public class StringLine
+public readonly struct StringLine
 {
     public static IComparer<StringLine> Comparer { get; } = new StringLineComparer();
 
@@ -21,24 +21,9 @@ public class StringLine
     
     private sealed class StringLineComparer : IComparer<StringLine>
     {
-        public int Compare(StringLine? x, StringLine? y)
+        public int Compare(StringLine x, StringLine y)
         {
-            if (ReferenceEquals(x, y))
-            {
-                return 0;
-            }
-
-            if (ReferenceEquals(null, y))
-            {
-                return 1;
-            }
-
-            if (ReferenceEquals(null, x))
-            {
-                return -1;
-            }
-           
-            var stringComparison = string.Compare(x.Text, y.Text, StringComparison.Ordinal);
+            var stringComparison = string.Compare(x.Text, y.Text, StringComparison.OrdinalIgnoreCase);
             return stringComparison != 0 ? stringComparison : x.Number.CompareTo(y.Number);
         }
     }
