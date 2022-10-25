@@ -9,28 +9,37 @@ var filePath = Path.Combine("C:/temp", fileName);
 var sw = new Stopwatch();
 sw.Start();
 await using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
-var reader = new StreamReader(fs, Encoding.UTF8, true, 128);
+using BufferedStream bs = new BufferedStream(fs);
+var reader = new StreamReader(bs, Encoding.UTF8, true, 4096 * 2);
 
-var dict = new Dictionary<string, StringLine>();
+var list = new List<StringLine>(500_000);
 
 var batchSize = 0;
 var batchNo = 0;
-while (await reader.ReadLineAsync() is { } line)
+Console.WriteLine("Stating...");
+while (reader.ReadLine() is { } line)
 {
-    var parts = line.Split(". ");
-    dict.Add(line, new StringLine(int.Parse(parts[0]), parts[1]));
+    list.Add(new StringLine(line));
     batchSize += Encoding.UTF8.GetByteCount(line);
     if (batchSize > memoryCapacityInBytes)
     {
-        await using var writeStream = new FileStream($"tmp_{batchNo}.txt", FileMode.Create, FileAccess.Write, FileShare.None);
-        foreach (var kvp in dict.OrderBy(x => x.Value, StringLine.Comparer))
+        Console.WriteLine($"New batch completed. Starting sorting: {batchNo}: " + sw.Elapsed.TotalSeconds);
+        
+        var sb = new StringBuilder();
+        list.Sort(StringLine.Comparer);
+        Console.WriteLine($"Sort completed. Starting writing to SB: {batchNo}: " + sw.Elapsed.TotalSeconds);
+        foreach (var kvp in list)
         {
-            await writeStream.WriteAsync(Encoding.UTF8.GetBytes(kvp.Key));
+            sb.AppendLine(kvp.ToString());
         }
-
+        
+        Console.WriteLine($"Writing to SB completed. Starting writing to file: {batchNo}: " + sw.Elapsed.TotalSeconds);
+        await using var writeStream = new FileStream($"tmp_{batchNo}.txt", FileMode.Create, FileAccess.Write, FileShare.None);
+        writeStream.Write(Encoding.UTF8.GetBytes(sb.ToString()));
         batchNo++;
         batchSize = 0;
-        dict.Clear();
+        list.Clear();
+        Console.WriteLine($"Writing completed for batch {batchNo}: " + sw.Elapsed.TotalSeconds);
     }
 }
 

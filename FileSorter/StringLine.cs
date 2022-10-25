@@ -4,18 +4,19 @@ public class StringLine
 {
     public static IComparer<StringLine> Comparer { get; } = new StringLineComparer();
 
-    public StringLine(int number, string text)
+    public StringLine(string line)
     {
-        Number = number;
-        Text = text;
+        var parts = line.Split(". ");
+        Text = parts[1];
+        Number = int.Parse(parts[0]);
     }
 
-    private int Number { get; set; }
-    private string Text { get; set; }
+    private int Number { get; }
+    private string Text { get; }
 
     public override string ToString()
     {
-        return $"{Number}. {Text}{Environment.NewLine}";
+        return $"{Number}. {Text}";
     }
     
     private sealed class StringLineComparer : IComparer<StringLine>
