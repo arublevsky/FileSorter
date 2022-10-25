@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileSorter", "FileSorter\FileSorter.csproj", "{FBF3A786-D19C-4EAA-BD45-0DC7CCB22A86}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FileGenerator", "FileGenerator\FileGenerator.csproj", "{88B16CD7-22B3-409D-982B-FBC42D38B556}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FBF3A786-D19C-4EAA-BD45-0DC7CCB22A86}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBF3A786-D19C-4EAA-BD45-0DC7CCB22A86}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBF3A786-D19C-4EAA-BD45-0DC7CCB22A86}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBF3A786-D19C-4EAA-BD45-0DC7CCB22A86}.Release|Any CPU.Build.0 = Release|Any CPU
+		{88B16CD7-22B3-409D-982B-FBC42D38B556}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{88B16CD7-22B3-409D-982B-FBC42D38B556}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{88B16CD7-22B3-409D-982B-FBC42D38B556}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{88B16CD7-22B3-409D-982B-FBC42D38B556}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
