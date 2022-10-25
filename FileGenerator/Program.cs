@@ -4,7 +4,7 @@ using static FileGenerator.Generator;
 var fileName = args[0];
 var sizeInBytes = int.Parse(args[1]);
 var enableDuplicates = bool.Parse(args[2]);
-var filePath = Path.Combine(Directory.GetCurrentDirectory(), fileName);
+var filePath = Path.Combine("C:/temp", fileName);
 
 await using var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
 
