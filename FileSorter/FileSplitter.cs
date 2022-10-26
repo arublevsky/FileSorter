@@ -4,15 +4,16 @@ namespace FileSorter;
 
 public static class FileSplitter
 {
-    public static void SplitIntoFileChunks(string filePath, int chunkSizeInBytes)
+    public static async Task SplitIntoFileChunks(string filePath, int chunkSizeInBytes)
     {
         using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
         using var bs = new BufferedStream(fs);
-        var reader = new StreamReader(bs, Encoding.UTF8, true);
+        var reader = new StreamReader(fs, Encoding.UTF8, false);
         var bucketOfBuckets = new List<List<StringLine>>(100);
         var bucket = new List<StringLine>(chunkSizeInBytes / 20);
+        var tasks = new List<Task>(100);
         var batchSize = 0;
-        long memoryLimit = 50 * 1024 * 1024;
+        long memoryLimit = 100 * 1024 * 1024;
     
         while (reader.ReadLine() is { } line)
         {
@@ -27,32 +28,30 @@ public static class FileSplitter
 
             if (bucketOfBuckets.Count * chunkSizeInBytes > memoryLimit)
             {
-                foreach (var b in bucketOfBuckets)
-                {
-                    Task.Run(() => WriteStringLines(b.ToList())).ContinueWith(_ => {});
-                }
-
+                tasks.AddRange(bucketOfBuckets.Select(SortAndWriteFileAsync));
                 bucketOfBuckets = new List<List<StringLine>>();
             }
         }
 
+        if (bucketOfBuckets.Any())
+        {
+            tasks.AddRange(bucketOfBuckets.Select(SortAndWriteFileAsync));
+        }
+
         if (bucket.Any())
         {
-            WriteStringLines(bucket);
+            tasks.Add(SortAndWriteFileAsync(bucket));
         }
+
+        await Task.WhenAll(tasks);
     }
 
-    private static void WriteStringLines(List<StringLine> list)
+    private static async Task SortAndWriteFileAsync(List<StringLine> lines)
     {
-        var sb = new StringBuilder();
-        list.Sort(StringLine.Comparer);
-        foreach (var kvp in list)
-        {
-            sb.AppendLine(kvp.ToString());
-        }
-
-        var tmpFileName = $"tmp_{Guid.NewGuid()}.txt";
-        using var writeStream = new FileStream(tmpFileName, FileMode.Create, FileAccess.Write, FileShare.None);
-        writeStream.Write(Encoding.UTF8.GetBytes(sb.ToString()));
+        await Task.Yield();
+        await File.AppendAllLinesAsync(
+            $"tmp_{Guid.NewGuid()}.txt",
+            lines.OrderBy(x => x, StringLine.Comparer).Select(x => x.ToString()),
+            Encoding.UTF8);
     }
 }

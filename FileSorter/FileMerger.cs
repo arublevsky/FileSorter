@@ -34,7 +34,7 @@ public static class FileMerger
 
     private static async Task MergeFilesInternal(string leftFile, string rightFile, string resultPath)
     {
-        var fileBatchSize = 1 * 1024 * 1024;
+        var fileBatchSize = 5 * 1024 * 1024;
         var sb = new StringBuilder();
         await using var resultStream = new FileStream(resultPath, FileMode.Create, FileAccess.Write, FileShare.None);
         await using var fs1 = new FileStream(leftFile, FileMode.Open, FileAccess.Read, FileShare.None);
@@ -44,7 +44,9 @@ public static class FileMerger
 
         var leftLine = await leftReader.ReadLineAsync();
         var rightLine = await rightReader.ReadLineAsync();
-
+        var left = new StringLine(leftLine);
+        var right = new StringLine(rightLine);
+        
         while (true)
         {
             if (sb.Length > fileBatchSize)
@@ -52,27 +54,19 @@ public static class FileMerger
                 await WriteLineAsync(resultStream, sb.ToString());
                 sb.Clear();
             }
-
-            var stringLine1 = new StringLine(leftLine);
-            var stringLine2 = new StringLine(rightLine);
-
-            if (StringLine.Comparer.Compare(stringLine1, stringLine2) < 0)
+            
+            if (StringLine.Comparer.Compare(left, right) < 0)
             {
                 sb.AppendLine(leftLine);
-                // await WriteLineAsync(resultStream, leftLine);
-                leftLine = await leftReader.ReadLineAsync()!;
+                leftLine = await leftReader.ReadLineAsync();
             }
-            else if (StringLine.Comparer.Compare(stringLine1, stringLine2) > 0)
+            else if (StringLine.Comparer.Compare(left, right) > 0)
             {
                 sb.AppendLine(rightLine);
-                //await WriteLineAsync(resultStream, rightLine);
-                rightLine = await rightReader.ReadLineAsync()!;
+                rightLine = await rightReader.ReadLineAsync();
             }
             else
             {
-                // await WriteLineAsync(resultStream, leftLine);
-                // await WriteLineAsync(resultStream, rightLine);
-                
                 sb.AppendLine(rightLine);
                 sb.AppendLine(leftLine);
                 
@@ -84,13 +78,11 @@ public static class FileMerger
             {
                 if (rightLine != null)
                 {
-                    //await WriteLineAsync(resultStream, rightLine);
                     sb.AppendLine(rightLine);
                 }
                 
                 while (await rightReader.ReadLineAsync() is { } line)
                 {
-                    // await WriteLineAsync(resultStream, line);
                     sb.AppendLine(line);
                 }
                 
@@ -100,17 +92,18 @@ public static class FileMerger
 
             if (rightLine == null)
             {
-                //await WriteLineAsync(resultStream, leftLine);
                 sb.AppendLine(leftLine);
                 while (await leftReader.ReadLineAsync() is { } line)
                 {
-                    // await WriteLineAsync(resultStream, line);
                     sb.AppendLine(line);
                 }
                 
                 await WriteLineAsync(resultStream, sb.ToString());
                 return;
             }
+            
+            left = new StringLine(leftLine);
+            right = new StringLine(rightLine);
         }
     }
 
