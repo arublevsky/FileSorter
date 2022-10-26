@@ -9,9 +9,10 @@ public static class FileSplitter
         using var fs = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.None);
         using var bs = new BufferedStream(fs);
         var reader = new StreamReader(bs, Encoding.UTF8, true);
+        var bucketOfBuckets = new List<List<StringLine>>(100);
         var bucket = new List<StringLine>(chunkSizeInBytes / 20);
         var batchSize = 0;
-        var batchNo = 0;
+        long memoryLimit = 50 * 1024 * 1024;
     
         while (reader.ReadLine() is { } line)
         {
@@ -19,20 +20,29 @@ public static class FileSplitter
             batchSize += Encoding.UTF8.GetByteCount(line);
             if (batchSize > chunkSizeInBytes)
             {
-                WriteStringLines(bucket, batchNo);
-                batchNo++;
+                bucketOfBuckets.Add(bucket);
                 batchSize = 0;
-                bucket.Clear();
+                bucket = new List<StringLine>();
+            }
+
+            if (bucketOfBuckets.Count * chunkSizeInBytes > memoryLimit)
+            {
+                foreach (var b in bucketOfBuckets)
+                {
+                    Task.Run(() => WriteStringLines(b.ToList())).ContinueWith(_ => {});
+                }
+
+                bucketOfBuckets = new List<List<StringLine>>();
             }
         }
 
         if (bucket.Any())
         {
-            WriteStringLines(bucket, batchNo);
+            WriteStringLines(bucket);
         }
     }
 
-    private static void WriteStringLines(List<StringLine> list, int batchNo)
+    private static void WriteStringLines(List<StringLine> list)
     {
         var sb = new StringBuilder();
         list.Sort(StringLine.Comparer);
@@ -41,7 +51,7 @@ public static class FileSplitter
             sb.AppendLine(kvp.ToString());
         }
 
-        var tmpFileName = $"tmp_{batchNo}.txt";
+        var tmpFileName = $"tmp_{Guid.NewGuid()}.txt";
         using var writeStream = new FileStream(tmpFileName, FileMode.Create, FileAccess.Write, FileShare.None);
         writeStream.Write(Encoding.UTF8.GetBytes(sb.ToString()));
     }
