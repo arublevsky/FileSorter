@@ -6,7 +6,7 @@ Prerequisites: .NET 6 SDK
 How to use:
 
 1. Navigate to `FileSorter` folder
-2. Run `dotnet build -c release`
+2. Run `dotnet build -c release -o build`
 3. Run `dotnet ./build/FileGenerator.dll <file_path> <file_size_in_bytes>` to generate test file.
 4. Run `dotnet ./build/FileSorter.dll <source_file_path> <chunk_size_in_bytes>`.
 
