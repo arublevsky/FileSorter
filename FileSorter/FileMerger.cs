@@ -3,14 +3,20 @@ using System.Text;
 
 namespace FileSorter;
 
-public static class FileMerger
+public class FileMerger
 {
     private const long WriteMemoryBuffer = 100 * 1024 * 1024; // 100 MB
+    
+    private readonly string _workingDir;
 
-    public static void MergeInOrder()
+    public FileMerger(string sourceFilePath)
+    {
+        _workingDir = Path.GetDirectoryName(sourceFilePath)!;
+    }
+    
+    public void MergeFileChunks()
     {
         var chunks = CurrentFiles.Chunk(2).ToArray();
-
         while (chunks.Length > 0)
         {
             Parallel.ForEach(
@@ -26,10 +32,10 @@ public static class FileMerger
         }
     }
     
-    private static void MergeFilesInOrder(string leftFile, string rightFile)
+    private void MergeFilesInOrder(string leftFile, string rightFile)
     {
-        var resultPath = Directory.GetCurrentDirectory() + "\\tmp_" + Guid.NewGuid() + ".txt";
-        MergeFilesInternal(leftFile, rightFile, resultPath);
+        var mergedFilePath = Path.Combine(_workingDir, $"tmp_{Guid.NewGuid()}.txt");
+        MergeFilesInternal(leftFile, rightFile, mergedFilePath);
         File.Delete(rightFile);
         File.Delete(leftFile);
     }
@@ -54,8 +60,8 @@ public static class FileMerger
                 sb.Clear();
             }
             
-            var left = new StringLine(leftLine);
-            var right = new StringLine(rightLine);
+            var left = new StringLine(leftLine!);
+            var right = new StringLine(rightLine!);
             
             var compareResult = StringLine.Comparer.Compare(left, right);
             if (compareResult < 0)
@@ -107,7 +113,7 @@ public static class FileMerger
         }
     }
 
-    private static string[] CurrentFiles => Directory.GetFiles(Directory.GetCurrentDirectory(), "tmp_*.txt");
+    private string[] CurrentFiles => Directory.GetFiles(_workingDir, "tmp_*.txt");
 
     private static void WriteLineAsync(Stream stream, string line) => stream.Write(Encoding.UTF8.GetBytes(line));
 

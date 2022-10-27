@@ -12,7 +12,7 @@ public static class Runner
         using var fs = new FileStream(outputFilePath, FileMode.Create, FileAccess.Write, FileShare.None);
 
         var i = 0;
-        var textToDuplicate = string.Empty;
+        string? textToDuplicate = null;
 
         while (fs.Length < sizeInBytes)
         {

@@ -9,12 +9,13 @@ public readonly struct StringLine
         var (number, text) = ParseLine(line);
         Text = text;
         Number = number;
+        OriginalLine = line;
     }
+
+    public string OriginalLine { get; }
 
     private int Number { get; }
     private string Text { get; }
-
-    public override string ToString() => $"{Number}. {Text}";
 
     private static (int, string) ParseLine(string line)
     {
