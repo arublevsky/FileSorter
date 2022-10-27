@@ -55,10 +55,11 @@ public class FileSplitter
         await Task.WhenAll(tasks);
     }
 
-    private Task SortAndWriteFileAsync(List<StringLine> lines)
+    private async Task SortAndWriteFileAsync(List<StringLine> lines)
     {
+        await Task.Yield();
         var chunkFilePath = Path.Combine(Path.GetDirectoryName(_sourceFilePath)!, $"tmp_{Guid.NewGuid()}.txt");
-        return File.AppendAllLinesAsync(
+        await File.AppendAllLinesAsync(
             chunkFilePath,
             lines.OrderBy(x => x, StringLine.Comparer).Select(x => x.OriginalLine),
             Encoding.UTF8);
