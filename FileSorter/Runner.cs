@@ -12,7 +12,7 @@ public static class Runner
         Console.WriteLine("Starting..");
         await new FileSplitter(sourceFilePath, fileChunkSizeInBytes).SplitIntoFileChunks();
         Console.WriteLine($"Split done: {sw.Elapsed.TotalSeconds}");
-        new FileMerger(sourceFilePath).MergeFileChunks();
+        await new FileMerger(sourceFilePath).MergeFileChunksAsync();
         Console.WriteLine($"Merge done: {sw.Elapsed.TotalSeconds}");
     }
 }

@@ -14,14 +14,14 @@ public class FileMerger
         _workingDir = Path.GetDirectoryName(sourceFilePath)!;
     }
     
-    public void MergeFileChunks()
+    public async Task MergeFileChunksAsync()
     {
         var chunks = CurrentFiles.Chunk(2).ToArray();
         while (chunks.Length > 0)
         {
-            Parallel.ForEach(
-                chunks.Where(chunk => chunk.Length != 1),
-                (chunk, _) => MergeFilesInOrder(chunk[1], chunk[0]));
+            await Task.WhenAll(
+                chunks.Where(chunk => chunk.Length != 1)
+                    .Select(chunk => Task.Run(() => MergeFilesInOrder(chunk[1], chunk[0]))));
 
             if (CurrentFiles.Length == 1)
             {
