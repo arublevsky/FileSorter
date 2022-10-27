@@ -5,15 +5,17 @@ namespace FileSorter;
 
 public static class FileMerger
 {
-    public static async Task MergeInOrderAsync()
+    private const long WriteMemoryBuffer = 100 * 1024 * 1024; // 100 MB
+
+    public static void MergeInOrder()
     {
         var chunks = CurrentFiles.Chunk(2).ToArray();
 
         while (chunks.Length > 0)
         {
-            await Parallel.ForEachAsync(
+            Parallel.ForEach(
                 chunks.Where(chunk => chunk.Length != 1),
-                (chunk, _) => MergeFilesInOrderAsync(chunk[1], chunk[0]));
+                (chunk, _) => MergeFilesInOrder(chunk[1], chunk[0]));
 
             if (CurrentFiles.Length == 1)
             {
@@ -24,54 +26,55 @@ public static class FileMerger
         }
     }
     
-    private static async ValueTask MergeFilesInOrderAsync(string leftFile, string rightFile)
+    private static void MergeFilesInOrder(string leftFile, string rightFile)
     {
         var resultPath = Directory.GetCurrentDirectory() + "\\tmp_" + Guid.NewGuid() + ".txt";
-        await MergeFilesInternal(leftFile, rightFile, resultPath);
+        MergeFilesInternal(leftFile, rightFile, resultPath);
         File.Delete(rightFile);
         File.Delete(leftFile);
     }
 
-    private static async Task MergeFilesInternal(string leftFile, string rightFile, string resultPath)
+    private static void MergeFilesInternal(string leftFile, string rightFile, string resultPath)
     {
-        var fileBatchSize = 5 * 1024 * 1024;
         var sb = new StringBuilder();
-        await using var resultStream = new FileStream(resultPath, FileMode.Create, FileAccess.Write, FileShare.None);
-        await using var fs1 = new FileStream(leftFile, FileMode.Open, FileAccess.Read, FileShare.None);
-        await using var fs2 = new FileStream(rightFile, FileMode.Open, FileAccess.Read, FileShare.None); 
-        using var leftReader = new StreamReader(fs1, Encoding.UTF8, true, 4096);
-        using var rightReader = new StreamReader(fs2, Encoding.UTF8, true, 4096);
+        using var resultStream = GetCreateFileStream(resultPath);
+        using var leftStream = GetReadFileStream(leftFile);
+        using var rightStream = GetReadFileStream(rightFile); 
+        using var leftReader = GetStreamReader(leftStream);
+        using var rightReader = GetStreamReader(rightStream);
 
-        var leftLine = await leftReader.ReadLineAsync();
-        var rightLine = await rightReader.ReadLineAsync();
-        var left = new StringLine(leftLine);
-        var right = new StringLine(rightLine);
-        
+        var leftLine = leftReader.ReadLine();
+        var rightLine = rightReader.ReadLine();
+
         while (true)
         {
-            if (sb.Length > fileBatchSize)
+            if (sb.Length > WriteMemoryBuffer)
             {
-                await WriteLineAsync(resultStream, sb.ToString());
+                WriteLineAsync(resultStream, sb.ToString());
                 sb.Clear();
             }
             
-            if (StringLine.Comparer.Compare(left, right) < 0)
+            var left = new StringLine(leftLine);
+            var right = new StringLine(rightLine);
+            
+            var compareResult = StringLine.Comparer.Compare(left, right);
+            if (compareResult < 0)
             {
                 sb.AppendLine(leftLine);
-                leftLine = await leftReader.ReadLineAsync();
+                leftLine = leftReader.ReadLine();
             }
-            else if (StringLine.Comparer.Compare(left, right) > 0)
+            else if (compareResult > 0)
             {
                 sb.AppendLine(rightLine);
-                rightLine = await rightReader.ReadLineAsync();
+                rightLine = rightReader.ReadLine();
             }
             else
             {
                 sb.AppendLine(rightLine);
                 sb.AppendLine(leftLine);
                 
-                leftLine = await leftReader.ReadLineAsync();
-                rightLine = await rightReader.ReadLineAsync();
+                leftLine = leftReader.ReadLine();
+                rightLine = rightReader.ReadLine();
             }
 
             if (leftLine == null)
@@ -81,33 +84,36 @@ public static class FileMerger
                     sb.AppendLine(rightLine);
                 }
                 
-                while (await rightReader.ReadLineAsync() is { } line)
+                while (rightReader.ReadLine() is { } line)
                 {
                     sb.AppendLine(line);
                 }
                 
-                await WriteLineAsync(resultStream, sb.ToString());
+                WriteLineAsync(resultStream, sb.ToString());
                 return;
             }
 
             if (rightLine == null)
             {
                 sb.AppendLine(leftLine);
-                while (await leftReader.ReadLineAsync() is { } line)
+                while (leftReader.ReadLine() is { } line)
                 {
                     sb.AppendLine(line);
                 }
                 
-                await WriteLineAsync(resultStream, sb.ToString());
+                WriteLineAsync(resultStream, sb.ToString());
                 return;
             }
-            
-            left = new StringLine(leftLine);
-            right = new StringLine(rightLine);
         }
     }
 
     private static string[] CurrentFiles => Directory.GetFiles(Directory.GetCurrentDirectory(), "tmp_*.txt");
 
-    private static ValueTask WriteLineAsync(Stream stream, string line) => stream.WriteAsync(Encoding.UTF8.GetBytes(line));
+    private static void WriteLineAsync(Stream stream, string line) => stream.Write(Encoding.UTF8.GetBytes(line));
+
+    private static FileStream GetCreateFileStream(string path) => new(path, FileMode.Create, FileAccess.Write, FileShare.None);
+    
+    private static FileStream GetReadFileStream(string path) => new(path, FileMode.Open, FileAccess.Read, FileShare.None);
+    
+    private static StreamReader GetStreamReader(Stream s) => new(s, Encoding.UTF8, false);
 }

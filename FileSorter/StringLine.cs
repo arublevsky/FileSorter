@@ -6,17 +6,22 @@ public readonly struct StringLine
 
     public StringLine(string line)
     {
-        var parts = line.Split(". ");
-        Text = parts[1];
-        Number = int.Parse(parts[0]);
+        var (number, text) = ParseLine(line);
+        Text = text;
+        Number = number;
     }
 
     private int Number { get; }
     private string Text { get; }
 
-    public override string ToString()
+    public override string ToString() => $"{Number}. {Text}";
+
+    private static (int, string) ParseLine(string line)
     {
-        return $"{Number}. {Text}";
+        var span = line.AsSpan();
+        var commaIndex = line.IndexOf(".", StringComparison.Ordinal);
+        var textStartIndex = commaIndex + 2;
+        return (int.Parse(span[..commaIndex]), span.Slice(textStartIndex, span.Length - textStartIndex).ToString());
     }
     
     private sealed class StringLineComparer : IComparer<StringLine>
